@@ -632,7 +632,6 @@ class ClawInputData(ClawData):
             raise AttributeError("*** Unrecognized checkpt_style: %s"\
                   % self.checkpt_style)
 
-        self.data_write()
         self.close_data_file()
 
 
