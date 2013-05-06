@@ -722,6 +722,8 @@ class AmrclawInputData(ClawInputData):
         self.data_write('uprint')
         self.data_write()
 
+        self.close_data_file()
+
 
 
 class GeoclawInputData(ClawData):
