@@ -771,6 +771,12 @@ class GeoclawInputData(ClawData):
         self.add_attribute('basin_depth',-3000.0)
         self.add_attribute('shelf_depth',-100.0)
         self.add_attribute('beach_slope',0.008)
+
+        self.add_attribute('lower',(-50e3,-50e3))
+        self.add_attribute('upper',(50e3,50e3))
+        self.add_attribute('jump_location',0.0)
+        self.add_attribute('depth',(-100.0,-100.0))
+        self.add_attribute('wall',10.0)
         
         # Moving topograhpy
         self.add_attribute('dtopofiles',[])
@@ -832,13 +838,19 @@ class GeoclawInputData(ClawData):
             self.data_write(name='topo_location',description='(Bathymetry jump location)')
             self.data_write(name='topo_left',description='(Depth to left of bathy_location)')
             self.data_write(name='topo_right',description='(Depth to right of bathy_location)')
-        elif self.test_topography == 2 or self.test_topography == 3: 
+        elif self.test_topography == 2: 
             self.data_write(name='x0',description='(Location of basin end)')
             self.data_write(name='x1',description='(Location of shelf slope end)')
             self.data_write(name='x2',description='(Location of beach slope)')
             self.data_write(name='basin_depth',description='(Depth of basin)')
             self.data_write(name='shelf_depth',description='(Depth of shelf)')
             self.data_write(name='beach_slope',description='(Slope of beach)')
+        elif self.test_topography == 3:
+            self.data_write(name='lower',description='(Location of basin end)')
+            self.data_write(name='upper',description='(Location of shelf slope end)')
+            self.data_write(name='jump_location',description="()")
+            self.data_write(name='depth',description='(Location of beach slope)')
+            self.data_write(name='wall',description='(Depth of basin)')
         else:
             raise NotImplementedError("Test topography type %s has not been"
                                         " implemented." % self.test_topography)    
@@ -850,11 +862,7 @@ class GeoclawInputData(ClawData):
         self.data_write(value=mdtopofiles,alt_name='mdtopofiles')
         self.data_write()
         for tfile in self.dtopofiles:
-            try:
-                fname = "'%s'" % os.path.abspath(tfile[-1])
-            except:
-                # print "*** Error: file not found: ",tfile[-1]
-                raise IOError("file not found")
+            fname = "'%s'" % os.path.abspath(tfile[-1])
             self._out_file.write("\n%s \n" % fname)
             self._out_file.write("%3i %3i %3i\n" % tuple(tfile[:-1]))
         self.close_data_file()
@@ -888,10 +896,7 @@ class QinitData(ClawData):
         self.data_write()
         # Check to see if each qinit file is present and then write the data
         for tfile in self.qinitfiles:
-            try:
-                fname = "'%s'" % os.path.abspath(tfile[-1])
-            except:
-                raise MissingFile("file not found")
+            fname = "'%s'" % os.path.abspath(tfile[-1])
             self._out_file.write("\n%s  \n" % fname)
             self._out_file.write("%3i %3i \n" % tuple(tfile[:-1]))
         self.close_data_file()
