@@ -24,8 +24,9 @@ def print_tests(tests):
         print "====== Test #%s ============================" % (i)
         print str(test)
 
-def run_tests(tests,plot=True,tar=False,max_processes=None,parallel=True,
-                verbose=False,terminal_output=False,executable="xclaw"):
+def run_tests(tests, plot=True, tar=False, max_processes=None, parallel=True,
+                verbose=False, terminal_output=False, executable="xclaw",
+                wait=False):
     # Parameters
     if os.environ.has_key('DATA_PATH'):
         base_path = os.environ['DATA_PATH']
@@ -41,10 +42,11 @@ def run_tests(tests,plot=True,tar=False,max_processes=None,parallel=True,
             max_processes = 4
     
     process_queue = []
-    RUNCLAW_CMD = "python $CLAW/python/pyclaw/runclaw.py"
-    PLOTCLAW_CMD = "python $CLAW/python/pyclaw/plotters/plotclaw.py"
+    RUNCLAW_CMD = "python $CLAWUTIL/src/python/clawutil/runclaw.py"
+    PLOTCLAW_CMD = "python $VISCLAW/src/visclaw/plotclaw.py"
     
     # Run tests
+    paths = []
     for (i,test) in enumerate(tests):
         # Create output directory
         data_dirname = ''.join((test.prefix,'_data'))
@@ -61,6 +63,9 @@ def run_tests(tests,plot=True,tar=False,max_processes=None,parallel=True,
         output_path = os.path.join(test_path,output_dirname)
         plots_path = os.path.join(test_path,plots_dirname)
         log_path = os.path.join(test_path,log_name)
+        paths.append({'test':test_path, 'data':data_path,
+                      'output':output_path, 'plots':plots_path,
+                      'log':log_path})
 
         # Create test directory if not present
         if not os.path.exists(test_path):
@@ -68,9 +73,10 @@ def run_tests(tests,plot=True,tar=False,max_processes=None,parallel=True,
 
         # Clobber old data directory
         if os.path.exists(data_path):
-            data_files = glob.glob(os.path.join(data_path,'*.data'))
-            for data_file in data_files:
-                os.remove(data_file)
+            if not test.rundata.clawdata.restart:
+                data_files = glob.glob(os.path.join(data_path,'*.data'))
+                for data_file in data_files:
+                    os.remove(data_file)
         else:
             os.mkdir(data_path)
 
@@ -91,11 +97,21 @@ def run_tests(tests,plot=True,tar=False,max_processes=None,parallel=True,
         os.chdir(data_path)
         test.write_data_objects()
         os.chdir(temp_path)
+
+        # Handle restart requests
+        if test.rundata.clawdata.restart:
+            restart = "T"
+            overwrite = "F"
+        else:
+            restart = "F"
+            overwrite = "T"
         
         # Run the simulation
-        run_cmd = "%s %s %s T F %s" % (RUNCLAW_CMD,executable,output_path,data_path)
-        plot_cmd = "%s %s %s %s" % (PLOTCLAW_CMD,output_path,plots_path,test.setplot)
-        tar_cmd = "tar -cvzf %s.tgz %s" % (plots_path,plots_path)
+        run_cmd = "%s %s %s %s %s %s" % (RUNCLAW_CMD, executable, output_path,
+                                                  overwrite, restart, data_path)
+        plot_cmd = "%s %s %s %s" % (PLOTCLAW_CMD, output_path, plots_path, 
+                                                                   test.setplot)
+        tar_cmd = "tar -cvzf %s.tgz %s" % (plots_path, plots_path)
         cmd = run_cmd
         if plot:
             cmd = ";".join((cmd,plot_cmd))
@@ -121,14 +137,17 @@ def run_tests(tests,plot=True,tar=False,max_processes=None,parallel=True,
             else:
                 subprocess.Popen(cmd,shell=True,stdout=log_file,
                     stderr=log_file).wait()
-    
+
     # Wait to exit while processes are still going
-    # while len(process_queue) > 0:
-    #     for process in process_queue:
-    #         if process.poll() == 0:
-    #             process_queue.remove(process)
-    #             print "Number of processes currently:",len(process_queue)
-    #     time.sleep(poll_interval)
+    if wait:
+        while len(process_queue) > 0:
+            time.sleep(poll_interval)
+            for process in process_queue:
+                if process.poll() == 0:
+                    process_queue.remove(process)
+            print "Number of processes currently:",len(process_queue)
+        
+    return paths
 
 
 class Test(object):
