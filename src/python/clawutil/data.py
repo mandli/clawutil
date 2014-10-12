@@ -330,7 +330,7 @@ class ClawRunData(ClawData):
             self.add_data(amrclaw.RegionData(num_dim=num_dim),'regiondata')
             self.add_data(amrclaw.GaugeData(num_dim=num_dim),'gaugedata')
 
-        elif pkg.lower() in ['geoclaw']:
+        elif pkg.lower() in ['geoclaw', 'digclaw']:
 
             import clawpack.amrclaw.data as amrclaw
             import clawpack.geoclaw.data as geoclaw
@@ -356,6 +356,14 @@ class ClawRunData(ClawData):
             except:
                 pass 
 
+            # Debris flow data addition, merge when available
+            if pkg.lower() == 'digclaw':
+                import clawpack.geoclaw.debris.data
+                self.xclawcmd = 'digclaw'
+                self.add_data(clawpack.geoclaw.debris.data.DebrisData(), 
+                              'debris_data')
+                self.add_data(clawpack.geoclaw.debris.data.PressureInitData(), 
+                              'pressure_init_data')
         else:
             raise AttributeError("Unrecognized Clawpack pkg = %s" % pkg)
 
