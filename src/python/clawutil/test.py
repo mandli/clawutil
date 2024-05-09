@@ -8,9 +8,6 @@ Sends output and result/errors to separate files to simplify checking
 results and looking for errors.
 """
 
-from __future__ import print_function
-
-from __future__ import absolute_import
 import os
 import sys
 import tempfile
